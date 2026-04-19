@@ -1,0 +1,57 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String   @id @default(cuid())
+  clerkId       String   @unique
+  name          String?
+  avatarColor   String
+  expoPushToken String?
+  createdAt     DateTime @default(now())
+
+  memberships GroupMember[]
+  sessions    Session[]
+}
+
+model Group {
+  id          String   @id @default(cuid())
+  name        String
+  gymName     String
+  description String?
+  inviteCode  String   @unique @default(cuid())
+  createdBy   String
+  createdAt   DateTime @default(now())
+
+  members  GroupMember[]
+  sessions Session[]
+}
+
+model GroupMember {
+  groupId  String
+  userId   String
+  joinedAt DateTime @default(now())
+
+  group Group @relation(fields: [groupId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@id([groupId, userId])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  groupId   String
+  climbedAt DateTime
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id])
+  group Group @relation(fields: [groupId], references: [id])
+
+  @@unique([userId, groupId, climbedAt])
+}

@@ -1,4 +1,4 @@
-# Climbing Accountability App — Spec & Roadmap
+# GroupSend — Spec & Roadmap
 
 ## Vision
 
@@ -95,13 +95,12 @@ model Session {
 ### Phase 1 — Foundation
 *Goal: working API with auth, groups, and sessions. No mobile UI yet.*
 
-- [ ] Initialize repo structure (monorepo: `/api`, `/mobile`, `/web`)
-- [ ] Set up Neon Postgres database
-- [ ] Write Prisma schema, run first migration
-- [ ] Set up Express server with TypeScript
-- [ ] Integrate Clerk for SMS OTP auth
-- [ ] Auth middleware — protect routes with JWT verification
-- [ ] Deploy API to Railway
+- [x] Initialize repo structure (monorepo: `/api`, `/mobile`, `/web`)
+- [x] Set up Neon Postgres database
+- [x] Write Prisma schema, run first migration
+- [x] Set up Express server with TypeScript
+- [x] Integrate Clerk for SMS OTP auth
+- [x] Auth middleware — protect routes with JWT verification
 
 **API routes built in this phase:**
 ```
@@ -113,12 +112,13 @@ POST /users               → create profile after first login
 ---
 
 ### Phase 2 — Groups
-*Goal: users can create groups, generate invite links, and join via invite code.*
+*Goal: users can create groups, generate invite links, and join via invite code. Deploy API to Railway.*
 
-- [ ] Group CRUD routes
-- [ ] Invite code generation on group creation
-- [ ] Join group via invite code
+- [x] Group CRUD routes
+- [x] Invite code generation on group creation
+- [x] Join group via invite code
 - [ ] Lightweight web portal — `/invite/:code` shows group name, gym, member count, App Store link
+- [ ] Deploy API to Railway
 
 **API routes:**
 ```
