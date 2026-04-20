@@ -117,7 +117,7 @@ POST /users               → create profile after first login
 - [x] Group CRUD routes
 - [x] Invite code generation on group creation
 - [x] Join group via invite code
-- [ ] Lightweight web portal — `/invite/:code` shows group name, gym, member count, App Store link
+- [x] Lightweight web portal — `/invite/:code` shows group name, gym, member count, App Store link
 - [x] Deploy API to Railway
 
 **API routes:**
