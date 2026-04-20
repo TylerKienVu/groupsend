@@ -4,6 +4,7 @@ import cors from "cors";
 import { clerkMiddleware } from "@clerk/express";
 import userRoutes from "./routes/users";
 import groupRoutes from "./routes/groups";
+import sessionRoutes from "./routes/sessions";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -18,6 +19,7 @@ app.get("/health", (_req, res) => {
 
 app.use("/users", userRoutes);
 app.use("/groups", groupRoutes);
+app.use("/sessions", sessionRoutes);
 
 app.listen(PORT, () => {
   console.log(`GroupSend API running on port ${PORT}`);

@@ -134,10 +134,10 @@ GET  /invite/:inviteCode        → public — group info for web portal (no aut
 ### Phase 3 — Sessions
 *Goal: users can log sessions (current time or retroactive). Heatmap data is queryable.*
 
-- [ ] Session logging route
-- [ ] Retroactive session logging (pass a custom `climbedAt`)
-- [ ] Query sessions for a group (powers the heatmap)
-- [ ] Prevent duplicate sessions (one per user per day per group)
+- [x] Session logging route
+- [x] Retroactive session logging (pass a custom `climbedAt`)
+- [x] Query sessions for a group (powers the heatmap)
+- [x] Prevent duplicate sessions (one per user per day per group)
 
 **API routes:**
 ```
