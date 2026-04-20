@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express from "express";
+import cors from "cors";
 import { clerkMiddleware } from "@clerk/express";
 import userRoutes from "./routes/users";
 import groupRoutes from "./routes/groups";
@@ -7,6 +8,7 @@ import groupRoutes from "./routes/groups";
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.use(cors());
 app.use(express.json());
 app.use(clerkMiddleware());
 
