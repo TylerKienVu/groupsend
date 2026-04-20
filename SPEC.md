@@ -151,7 +151,7 @@ DELETE /sessions/:id                    → delete a session (own sessions only)
 ### Phase 4 — Mobile App (core screens)
 *Goal: the full app is usable end-to-end on iOS.*
 
-- [ ] Expo project setup, navigation (React Navigation, tab-based)
+- [x] Expo project setup, navigation (React Navigation, tab-based)
 - [ ] Auth screens — phone entry, OTP verification
 - [ ] Profile creation screen (name + avatar color)
 - [ ] Home screen — list of groups, + button to create
