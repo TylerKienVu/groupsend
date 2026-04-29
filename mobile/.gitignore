@@ -1,41 +1,13 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
-
-# dependencies
-node_modules/
-
-# Expo
-.expo/
-dist/
-web-build/
-expo-env.d.ts
-
-# Native
-.kotlin/
-*.orig.*
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
-
-# Metro
-.metro-health-check*
-
-# debug
-npm-debug.*
-yarn-debug.*
-yarn-error.*
+# Xcode build artifacts
+DerivedData/
+*.xcuserstate
+xcuserdata/
 
 # macOS
 .DS_Store
-*.pem
 
-# local env files
-.env*.local
+# Swift Package Manager (added via Xcode, not version-controlled)
+.build/
+*.resolved
 
-# typescript
-*.tsbuildinfo
-
-# generated native folders
-/ios
-/android
+# project.yml is source of truth — xcodeproj is committed so CI/Xcode don't need xcodegen

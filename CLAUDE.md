@@ -16,3 +16,7 @@ This is a learning project. Tyler is a frontend engineer learning backend develo
 **Pace:**
 - Slow down. Understanding matters more than shipping speed.
 - If Tyler asks "why did you do X", treat it as the most important question in the conversation.
+
+## Package installs (mobile)
+
+When a package install fails due to Clerk's peer dep conflict and requires `--legacy-peer-deps`, first check `mobile/node_modules/expo/bundledNativeModules.json` to confirm the Expo SDK 54-expected version before installing. This prevents version drift (e.g. pulling in SDK 55 packages into an SDK 54 project).

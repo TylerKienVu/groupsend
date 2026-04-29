@@ -13,10 +13,37 @@ A mobile app for friend groups of climbers. The core loop: check in when you cli
 - **Sessions are group-scoped** — no solo logging; if you're not in a group, there's nothing to log
 - **Groups:** A user can belong to multiple groups
 - **Gym:** Free text field set by group creator
-- **Heatmap:** Hybrid — aggregate view on top (group rhythm), individual rows below (personal accountability)
+- **Heatmap:** **Column-stack** visualization — each column is one day (last 14 days on group detail, last 10 on home cards), each colored dot in the column is one climber who showed up. The dot color is the climber's avatar color, so you can scan and see *who* climbed, not just how many. See [Column-stack rules](#column-stack-rules).
+- **Rhythm rank:** Each member's recent activity (sessions in the last 4 weeks) maps to a V-grade label, V0 ("Chalking up") through V8+ ("Pro mode"). Displayed as a ranked leaderboard on the group detail screen, sorted by rank descending. This *replaces* the previous "individual heatmap rows" idea — the column stack already shows individual identity per day, so a leaderboard adds the cumulative-rhythm dimension without doubling up on the same axis.
 - **Push notifications v1:** History-based reminders — if a user climbed on a given day last week, send a reminder at the same time this week. Tapping the notification completes the check-in. No notification sent if they didn't climb that day last week.
 - **Sessions per day:** One per user per group per day
 - **Web portal v1:** Lightweight — shows group info, redirects to app store
+
+---
+
+## Design Language
+
+### Brand
+- **Dark UI**, Partiful-influenced. Black-ish bg (`#0B0B0F`), warm off-white text (`#F4F3EF`).
+- **Accent:** sandstone orange `#FF7B3F` — primary CTA, glow on the "today" column, focused borders. Reads as "sunset on red rock," ties the brand to the climbing context without literal imagery.
+- **Type:** Geist (sans) + Geist Mono. Mono is used for labels, timestamps, ranks, and any "data-feel" type. Sans for headlines and body. *iOS implementation uses SF Pro / SF Mono (system fonts) as stand-ins — Geist requires bundling font files and is a Phase 6 polish step.*
+
+### Color systems (two distinct palettes — do not mix)
+- **Avatar palette** (10 saturated colors) — identifies *people*. Each user picks one at signup; appears around their initials in avatars, and as the dot color in the column-stack chart. This is the only place these colors should appear.
+- **V-grade palette** (V0–V10) — identifies *climbing grades*. Used for grade chips (rhythm rank labels, future route-grade UI). These are the climbing-bright Partiful colors. Do not use these as person identity.
+
+### Column-stack rules
+- **Each column = one day.** Most recent day on the right (today on group detail; "yesterday" on invite preview because the invite preview shows past activity, not current).
+- **Each dot in a column = one climber who showed up that day.** Dot color = the climber's avatar color.
+- **Empty slots above the dots** stay rendered as faint placeholders so the chart shape always reads at a glance — quiet days look like thin columns, busy days fill the column.
+- **Capacity** = group member count (current cap is 6 on group detail, 5–6 on home cards based on space).
+- **Overflow** (more climbers than capacity, e.g. members + guests):
+  - **Group detail:** show `+N` dot in the topmost slot, *replacing* what would have been the capacity-th climber dot. Column height stays uniform across days.
+  - **Home cards & invite preview:** clip silently. The `+N` affordance is unnecessary at small sizes and adds noise.
+- **Today highlight:** orange glow (`box-shadow` matching the accent) on every dot in today's column on group detail.
+
+### Iconography
+- Hand-drawn SVG hold shapes (Jug, Crimp, Sloper, Pinch) live in the design system but are used sparingly. No emoji. No stock icon-pack icons — only the hand-rolled set in `tokens.jsx` (`Icon.*`). *iOS implementation currently uses SF Symbols as a pragmatic stand-in; porting the hold shapes to SwiftUI Paths is a Phase 6 polish step.*
 
 ---
 
@@ -25,7 +52,8 @@ A mobile app for friend groups of climbers. The core loop: check in when you cli
 ```prisma
 model User {
   id          String   @id @default(cuid())
-  phone       String   @unique
+  clerkId     String   @unique  // added in Phase 1 migration
+  phone       String?           // populated by Clerk; optional until sync is wired
   name        String
   avatarColor String
   createdAt   DateTime @default(now())
@@ -76,13 +104,13 @@ model Session {
 
 | Layer | Choice |
 |---|---|
-| Mobile | React Native (Expo) — iOS first |
-| Language | TypeScript throughout |
+| Mobile | Swift / SwiftUI — iOS first (native) |
+| Language | Swift (mobile), TypeScript (API) |
 | API | Node.js + Express |
 | ORM | Prisma |
 | Database | PostgreSQL on Neon (free tier) |
-| Auth | Clerk (SMS OTP) |
-| Push notifications | Expo Push Notification Service |
+| Auth | Clerk (SMS OTP) — clerk-ios Swift SDK |
+| Push notifications | Apple Push Notification Service (APNs) |
 | API hosting | Railway |
 | Web portal | Simple HTML or Next.js page (hosted on Vercel) |
 
@@ -149,32 +177,33 @@ DELETE /sessions/:id                    → delete a session (own sessions only)
 ---
 
 ### Phase 4 — Mobile App (core screens)
-*Goal: the full app is usable end-to-end on iOS.*
+*Goal: the full app is usable end-to-end on iOS. Native Swift/SwiftUI, xcodegen for project scaffolding. Visual reference: see HTML design mockup (10 screens).*
 
-- [x] Expo project setup, navigation (React Navigation, tab-based)
-- [ ] Auth screens — phone entry, OTP verification
-- [ ] Profile creation screen (name + avatar color)
-- [ ] Home screen — list of groups, + button to create
-- [ ] Group creation screen — name, gym, description → share invite link
-- [ ] Group detail screen — member list with session counts
-- [ ] Heatmap component — aggregate row + individual member rows
-- [ ] Check-in screen — one-tap button, retroactive log option
-- [ ] Deep link handling — `/invite/:code` opens join flow in app
+- [x] xcodegen project.yml, Xcode project scaffold, Clerk Swift SDK via SPM
+- [x] **Onboarding** — Phone entry → OTP → profile creation (name + avatar color). *UI complete; Clerk SDK calls (`signIn.create`, `attemptFirstFactor`) are stubbed with TODOs — wiring them is the next task before auth works end-to-end.*
+- [x] **Empty home** — first-run state when user has no groups; CTA to create or join
+- [x] **Home** — list of group cards, each showing name, gym, member avatars, and a 10-day mini column-stack
+- [x] **Group creation** — name, gym, optional description → share invite link. *Also exposes an accent color picker (from the mockup) that wasn't in the original spec text.*
+- [x] **Group detail** — member count, 14-day column-stack chart, rhythm-rank leaderboard, check-in CTA
+- [x] **Check-in** — one-tap "Climbed today" + retroactive logging. *Retroactive UI is a week strip (Mon–Sun of current week) rather than a full arbitrary date picker — matches the design mockup. Full date picker moved to Phase 6.*
+- [x] **Invite landing** — join CTA, opened from invite link. *Column-stack preview not shown: the public `GET /invite/:code` endpoint only returns name/gym/memberCount — no session data. Showing the chart requires either making sessions public or a new endpoint. Deferred.*
+- [x] **Settings** — notification toggles, sign out, profile card. *"Leave group" not yet implemented — it needs a `DELETE /groups/:id/members/me` endpoint that doesn't exist yet. "Edit profile" is a placeholder nav row. Both deferred.*
+- [x] Deep link handling — `groupsend://invite/:code` opens `InviteView` as a sheet from anywhere in the app
 
 ---
 
 ### Phase 5 — Push Notifications
 *Goal: history-based reminder notifications that complete a check-in on tap.*
 
-- [ ] Register Expo push token on login, store on User model
-- [ ] Daily cron job — for each user, check if they had a session exactly 7 days ago; if yes, send a push notification
+- [ ] Register APNs device token on login, store on User model
+- [ ] Daily cron job — for each user, check if they had a session exactly 7 days ago; if yes, send a push notification via APNs
 - [ ] Notification payload includes a deep link → tapping it fires `POST /sessions` and confirms check-in
 - [ ] User can disable notifications in settings
 
 **Schema addition:**
 ```prisma
 // Add to User model
-expoPushToken  String?
+apnsDeviceToken  String?
 ```
 
 ---
@@ -182,9 +211,14 @@ expoPushToken  String?
 ### Phase 6 — Polish & TestFlight
 *Goal: stable enough to share with your actual friend group.*
 
+- [ ] Wire Clerk SDK calls in `PhoneEntryView` (`signIn.create`) and `OtpView` (`attemptFirstFactor`) so SMS OTP auth works end-to-end
+- [ ] `DELETE /groups/:id/members/me` API endpoint + "Leave group" in Settings
+- [ ] Invite landing column-stack preview — requires session data from the invite endpoint
+- [ ] Full retroactive date picker (currently limited to current week)
+- [ ] Edit profile screen (name + avatar color change, `PUT /users/me`)
+- [ ] Hold-shape icons ported from `tokens.jsx` SVGs to SwiftUI Paths
+- [ ] Bundle Geist + Geist Mono fonts
 - [ ] Error handling and loading states throughout mobile app
-- [ ] Empty states (no groups, no sessions yet)
-- [ ] Retroactive log UX — date picker, clean confirmation
 - [ ] Basic input validation on all forms
 - [ ] App icons, splash screen
 - [ ] TestFlight build + internal distribution
@@ -200,6 +234,7 @@ expoPushToken  String?
 - Multiple gyms per group
 - Session notes/comments
 - Streak tracking
+- **Guests** — non-member climbers who tagged along for a session. Currently the only source of column-stack overflow; modeling them as first-class would make the `+N` overflow case real instead of mocked.
 
 ---
 
