@@ -195,10 +195,10 @@ DELETE /sessions/:id                    → delete a session (own sessions only)
 ### Phase 5 — Push Notifications
 *Goal: history-based reminder notifications that complete a check-in on tap.*
 
-- [ ] Register APNs device token on login, store on User model
-- [ ] Daily cron job — for each user, check if they had a session exactly 7 days ago; if yes, send a push notification via APNs
-- [ ] Notification payload includes a deep link → tapping it fires `POST /sessions` and confirms check-in
-- [ ] User can disable notifications in settings
+- [x] Register APNs device token on login, store on User model
+- [x] Cron job (every 5 min) — find sessions from exactly 7 days ago in the same ±2.5 min window; send a push at the same time they climbed last week. Retroactive sessions filtered out by comparing climbedAt vs createdAt.
+- [x] Notification payload includes a deep link → tapping it fires `groupsend://checkin/:groupId` which opens CheckInView preselected on that group
+- [x] User can disable notifications in settings (History reminders toggle calls clearDeviceToken)
 
 **Schema addition:**
 ```prisma

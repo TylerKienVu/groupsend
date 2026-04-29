@@ -30,6 +30,14 @@ struct APIClient {
         _ = try await URLSession.shared.data(for: request)
     }
 
+    // PUT /users/me/device-token — pass nil to clear (disable notifications)
+    func putDeviceToken(_ token: String?) async throws {
+        struct Body: Encodable { let deviceToken: String? }
+        var request = try buildRequest(path: "/users/me/device-token", method: "PUT")
+        request.httpBody = try JSONEncoder().encode(Body(deviceToken: token))
+        _ = try await URLSession.shared.data(for: request)
+    }
+
     // MARK: - Private
 
     private func buildRequest(path: String, method: String, query: [String: String] = [:]) throws -> URLRequest {

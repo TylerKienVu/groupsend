@@ -44,4 +44,23 @@ router.post('/', requireAuth, async (req, res) => {
   res.status(201).json(user);
 });
 
+// PUT /users/me/device-token — register or clear APNs token
+// Body: { deviceToken: string | null }
+router.put('/me/device-token', requireAuth, async (req, res) => {
+  const { userId: clerkId } = getAuth(req);
+  const { deviceToken } = req.body;
+
+  if (deviceToken !== null && typeof deviceToken !== 'string') {
+    res.status(400).json({ error: 'deviceToken must be a string or null' });
+    return;
+  }
+
+  await prisma.user.update({
+    where: { clerkId: clerkId! },
+    data: { apnsDeviceToken: deviceToken ?? null },
+  });
+
+  res.status(204).send();
+});
+
 export default router;

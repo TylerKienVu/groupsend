@@ -37,4 +37,13 @@ final class AuthManager: ObservableObject {
     func apiClient() -> APIClient {
         APIClient(token: sessionToken)
     }
+
+    func registerDeviceToken(_ token: String) async {
+        guard sessionToken != nil else { return }
+        try? await apiClient().putDeviceToken(token)
+    }
+
+    func clearDeviceToken() async {
+        try? await apiClient().putDeviceToken(nil)
+    }
 }

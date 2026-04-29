@@ -1,4 +1,5 @@
 import SwiftUI
+import UserNotifications
 
 struct SettingsView: View {
     @EnvironmentObject private var authManager: AuthManager
@@ -40,7 +41,22 @@ struct SettingsView: View {
                             toggleRow(
                                 title: "History reminders",
                                 subtitle: "Ping me when I climbed last week",
-                                isOn: $historyReminders
+                                isOn: $historyReminders,
+                                onChange: { enabled in
+                                    Task {
+                                        if enabled {
+                                            // Re-request permission and re-register
+                                            UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
+                                                guard granted else { return }
+                                                DispatchQueue.main.async {
+                                                    UIApplication.shared.registerForRemoteNotifications()
+                                                }
+                                            }
+                                        } else {
+                                            await authManager.clearDeviceToken()
+                                        }
+                                    }
+                                }
                             )
                             Divider().background(DS.border)
                             toggleRow(
@@ -152,7 +168,7 @@ struct SettingsView: View {
 
     // ── Toggle row ────────────────────────────────────────────────────────
 
-    private func toggleRow(title: String, subtitle: String? = nil, isOn: Binding<Bool>) -> some View {
+    private func toggleRow(title: String, subtitle: String? = nil, isOn: Binding<Bool>, onChange: ((Bool) -> Void)? = nil) -> some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
@@ -175,7 +191,10 @@ struct SettingsView: View {
                     .frame(width: 22, height: 22)
                     .padding(2)
             }
-            .onTapGesture { withAnimation(.spring(response: 0.2)) { isOn.wrappedValue.toggle() } }
+            .onTapGesture {
+                withAnimation(.spring(response: 0.2)) { isOn.wrappedValue.toggle() }
+                onChange?(isOn.wrappedValue)
+            }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 14)

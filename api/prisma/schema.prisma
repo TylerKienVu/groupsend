@@ -12,7 +12,7 @@ model User {
   clerkId       String   @unique
   name          String?
   avatarColor   String
-  expoPushToken String?
+  apnsDeviceToken String?
   createdAt     DateTime @default(now())
 
   memberships GroupMember[]

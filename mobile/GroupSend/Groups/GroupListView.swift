@@ -6,11 +6,13 @@ private let groupAccents: [Color] = [DS.vGrades[3], DS.vGrades[9], DS.vGrades[5]
 
 struct GroupListView: View {
     @EnvironmentObject private var authManager: AuthManager
+    @Binding var pendingCheckinGroupId: String?
 
     @State private var groups: [GroupModel] = []
     @State private var sessionsByGroup: [String: [DayColumn]] = [:]  // groupId → 10-day columns
     @State private var showCreateGroup = false
     @State private var showCheckIn = false
+    @State private var checkinGroupId: String? = nil
     @State private var showSettings = false
     @State private var isLoading = true
     @State private var selectedGroup: GroupModel?
@@ -38,8 +40,14 @@ struct GroupListView: View {
         .sheet(isPresented: $showCreateGroup) {
             GroupCreationView()
         }
-        .sheet(isPresented: $showCheckIn) {
-            CheckInView(groups: groups)
+        .sheet(isPresented: $showCheckIn, onDismiss: { checkinGroupId = nil }) {
+            CheckInView(groups: groups, preselectedGroupId: checkinGroupId)
+        }
+        .onChange(of: pendingCheckinGroupId) { groupId in
+            guard let groupId, !groups.isEmpty else { return }
+            checkinGroupId = groupId
+            showCheckIn = true
+            pendingCheckinGroupId = nil
         }
         .task { await loadGroups() }
     }
@@ -259,6 +267,12 @@ struct GroupListView: View {
             await MainActor.run {
                 groups = response.groups
                 isLoading = false
+                // Handle notification deep link that arrived before groups loaded
+                if let groupId = pendingCheckinGroupId {
+                    checkinGroupId = groupId
+                    showCheckIn = true
+                    pendingCheckinGroupId = nil
+                }
             }
             // Load sessions for each group in parallel so the column-stacks fill in
             await withTaskGroup(of: (String, [DayColumn]).self) { taskGroup in

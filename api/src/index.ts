@@ -5,6 +5,7 @@ import { clerkMiddleware } from "@clerk/express";
 import userRoutes from "./routes/users";
 import groupRoutes from "./routes/groups";
 import sessionRoutes from "./routes/sessions";
+import { startCronJobs } from "./lib/cron";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -23,4 +24,5 @@ app.use("/sessions", sessionRoutes);
 
 app.listen(PORT, () => {
   console.log(`GroupSend API running on port ${PORT}`);
+  startCronJobs();
 });
