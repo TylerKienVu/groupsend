@@ -211,7 +211,7 @@ apnsDeviceToken  String?
 ### Phase 6 — Polish & TestFlight
 *Goal: stable enough to share with your actual friend group.*
 
-- [ ] Wire Clerk SDK calls in `PhoneEntryView` (`signIn.create`) and `OtpView` (`attemptFirstFactor`) so SMS OTP auth works end-to-end
+- [x] Wire Clerk SDK calls in `PhoneEntryView` (`signIn.create`) and `OtpView` (`attemptFirstFactor`) so SMS OTP auth works end-to-end
 - [ ] `DELETE /groups/:id/members/me` API endpoint + "Leave group" in Settings
 - [ ] Invite landing column-stack preview — requires session data from the invite endpoint
 - [ ] Full retroactive date picker (currently limited to current week)

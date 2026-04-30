@@ -1,10 +1,13 @@
 import SwiftUI
+import ClerkKit
 
 struct OtpView: View {
     let phoneNumber: String
+    let clerkSignIn: SignIn
     @EnvironmentObject private var authManager: AuthManager
     @State private var digits: [String] = Array(repeating: "", count: 6)
     @State private var isLoading = false
+    @State private var errorMessage: String?
     @FocusState private var focusedIndex: Int?
 
     private var code: String { digits.joined() }
@@ -97,26 +100,35 @@ struct OtpView: View {
                 .font(.system(size: 14))
                 .padding(.top, 28)
 
+                if let errorMessage {
+                    Text(errorMessage)
+                        .font(.system(size: 13))
+                        .foregroundColor(.red.opacity(0.8))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 28)
+                        .padding(.top, 12)
+                }
+
                 Spacer()
 
                 // Invisible text field that captures keyboard input
                 TextField("", text: Binding(
                     get: { code },
                     set: { newValue in
-                        let digits = newValue.filter(\.isNumber)
-                        for (i, ch) in digits.prefix(6).enumerated() {
-                            self.digits[i] = String(ch)
+                        let filtered = newValue.filter(\.isNumber)
+                        var newDigits = Array(repeating: "", count: 6)
+                        for (i, ch) in filtered.prefix(6).enumerated() {
+                            newDigits[i] = String(ch)
                         }
-                        // Clear trailing digits if user deleted
-                        for i in digits.count..<6 { self.digits[i] = "" }
-                        focusedIndex = min(digits.count, 5)
-                        if digits.count == 6 { verify() }
+                        self.digits = newDigits
+                        focusedIndex = min(filtered.count, 5)
                     }
                 ))
                 .keyboardType(.numberPad)
                 .focused($focusedIndex, equals: 0)
                 .opacity(0)
                 .frame(width: 1, height: 1)
+                .onChange(of: code) { if $0.count == 6 { verify() } }
             }
         }
         .navigationBarHidden(true)
@@ -124,10 +136,38 @@ struct OtpView: View {
     }
 
     private func verify() {
-        guard isComplete else { return }
+        guard isComplete, !isLoading else { return }
         isLoading = true
-        // TODO: Clerk signIn.attemptFirstFactor(strategy: .phoneCode(code: code))
-        // Then POST /auth/verify with { token: clerkSessionToken }
-        // On success: authManager.signIn(token: response.token, hasProfile: response.hasProfile)
+        errorMessage = nil
+        Task {
+            do {
+                // Step 1: Send the code to Clerk. On success, Clerk establishes a session
+                // and populates Clerk.shared.session internally.
+                try await clerkSignIn.verifyCode(code)
+
+                // Step 2: Get the JWT from the now-active session.
+                // This token goes on every API request as "Authorization: Bearer <token>".
+                guard let token = try await Clerk.shared.session?.getToken() else {
+                    throw URLError(.userAuthenticationRequired)
+                }
+
+                // Step 3: Check if this user already has a profile in our database.
+                // 200 → they do. 404 → first time — we route them to ProfileCreationView.
+                let profile = try await APIClient(token: token).getMe()
+
+                // Step 4: Update auth state. ContentView switches screens based on this.
+                authManager.signIn(token: token, hasProfile: profile != nil)
+                if let profile { authManager.userLoaded(profile) }
+            } catch {
+                // If verifyCode succeeded but a later step (getToken, getMe) failed,
+                // Clerk already has an active session. Sign it out so the user can
+                // restart the flow cleanly instead of hitting "already signed in".
+                if Clerk.shared.session != nil {
+                    try? await Clerk.shared.auth.signOut()
+                }
+                errorMessage = error.localizedDescription
+                isLoading = false
+            }
+        }
     }
 }

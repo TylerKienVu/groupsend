@@ -27,6 +27,8 @@
 	</array>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>ClerkPublishableKey</key>
+	<string>pk_test_cmVhbC1mcm9nLTUwLmNsZXJrLmFjY291bnRzLmRldiQ</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>

@@ -6,6 +6,11 @@ options:
   xcodeVersion: "15.0"
   createIntermediateGroups: true
 
+packages:
+  ClerkSDK:
+    url: https://github.com/clerk/clerk-ios
+    from: "1.0.0"
+
 settings:
   base:
     SWIFT_VERSION: "5.9"
@@ -19,6 +24,9 @@ targets:
     platform: iOS
     sources:
       - path: GroupSend
+    dependencies:
+      - package: ClerkSDK
+        product: ClerkKit
     info:
       path: GroupSend/Info.plist
       properties:
@@ -29,6 +37,9 @@ targets:
               - groupsend
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: false
+        # Clerk reads this key automatically during Clerk.shared.load()
+        # Find your publishable key in the Clerk dashboard → API Keys
+        ClerkPublishableKey: "pk_test_cmVhbC1mcm9nLTUwLmNsZXJrLmFjY291bnRzLmRldiQ"
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.tyler.groupsend

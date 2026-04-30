@@ -1,7 +1,7 @@
 import Foundation
 
 struct APIClient {
-    static let baseURL = "https://your-api.railway.app" // replace with your Railway URL
+    static let baseURL = Config.apiBaseURL
 
     private let token: String?
 
@@ -22,6 +22,26 @@ struct APIClient {
         request.httpBody = try JSONEncoder().encode(body)
         let (data, _) = try await URLSession.shared.data(for: request)
         return try decoder().decode(T.self, from: data)
+    }
+
+    // GET /users/me — returns nil on 404 (user has no profile yet), throws on other errors.
+    // The generic get() can't handle 404 gracefully because it always decodes the body,
+    // so this method inspects the status code first.
+    func getMe() async throws -> UserProfile? {
+        let request = try buildRequest(path: "/users/me", method: "GET")
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse else { throw URLError(.badServerResponse) }
+        // DEBUG — remove before shipping
+        print("getMe status:", http.statusCode)
+        print("getMe body:", String(data: data, encoding: .utf8) ?? "<binary>")
+        if http.statusCode == 404 { return nil }
+        guard http.statusCode == 200 else {
+            let msg = (try? JSONDecoder().decode([String: String].self, from: data))?["error"]
+                ?? "Server error (\(http.statusCode))"
+            throw NSError(domain: "API", code: http.statusCode,
+                          userInfo: [NSLocalizedDescriptionKey: msg])
+        }
+        return try decoder().decode(UserProfile.self, from: data)
     }
 
     // For DELETE requests that return 204 No Content

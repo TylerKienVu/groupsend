@@ -1,5 +1,6 @@
 import SwiftUI
 import UserNotifications
+import ClerkKit
 
 // AppDelegate handles the APNs token callback, which SwiftUI's App lifecycle
 // doesn't expose directly. @UIApplicationDelegateAdaptor bridges the two.
@@ -38,6 +39,7 @@ struct GroupSendApp: App {
             )
             .environmentObject(authManager)
             .preferredColorScheme(.dark)
+            .task { await loadClerk() }
             .onOpenURL { url in
                 guard url.scheme == "groupsend" else { return }
                 if url.host == "invite",
@@ -55,6 +57,14 @@ struct GroupSendApp: App {
                 requestNotificationPermission()
             }
         }
+    }
+
+    private func loadClerk() async {
+        // configure() is synchronous: loads cached session from keychain, starts
+        // background token refresh. restoreSessionIfNeeded() reads Clerk.shared.session
+        // immediately after — the cache is populated synchronously by configure().
+        Clerk.configure(publishableKey: Config.clerkPublishableKey)
+        await authManager.restoreSessionIfNeeded()
     }
 
     private func requestNotificationPermission() {

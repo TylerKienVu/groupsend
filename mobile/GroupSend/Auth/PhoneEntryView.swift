@@ -1,9 +1,12 @@
 import SwiftUI
+import ClerkKit
 
 struct PhoneEntryView: View {
     @EnvironmentObject private var authManager: AuthManager
     @State private var phoneNumber = ""
     @State private var isLoading = false
+    @State private var errorMessage: String?
+    @State private var clerkSignIn: SignIn?
     @State private var showOTP = false
     @FocusState private var fieldFocused: Bool
 
@@ -105,21 +108,52 @@ struct PhoneEntryView: View {
                             .lineSpacing(3)
                             .padding(.horizontal, 8)
                             .padding(.top, 16)
+
+                        if let errorMessage {
+                            Text(errorMessage)
+                                .font(.system(size: 13))
+                                .foregroundColor(.red.opacity(0.8))
+                                .multilineTextAlignment(.center)
+                                .padding(.top, 8)
+                        }
                     }
                     .padding(.horizontal, 22)
                     .padding(.bottom, 40)
                 }
             }
+            // SignIn is not Hashable so we can't use navigationDestination(item:).
+            // Instead we pair a Bool trigger with the optional SignIn object.
             .navigationDestination(isPresented: $showOTP) {
-                OtpView(phoneNumber: phoneNumber)
+                if let signIn = clerkSignIn {
+                    OtpView(phoneNumber: phoneNumber, clerkSignIn: signIn)
+                }
             }
             .onAppear { fieldFocused = true }
         }
     }
 
     private func sendCode() {
-        // TODO: Clerk signIn.create(strategy: .phoneCode, identifier: "+1\(phoneNumber)")
+        guard !phoneNumber.isEmpty else { return }
         isLoading = true
-        showOTP = true
+        errorMessage = nil
+        Task {
+            do {
+                // If a previous OTP attempt left an orphaned Clerk session (verifyCode
+                // succeeded but our backend call failed), Clerk will reject a new sign-in
+                // with "already signed in". Clear it first.
+                if Clerk.shared.session != nil {
+                    try? await Clerk.shared.auth.signOut()
+                }
+                // signInWithPhoneCode creates the sign-in AND sends the SMS in one call.
+                // The "+1" prefix hard-codes US country code — good enough for v1.
+                let digits = phoneNumber.filter(\.isNumber)
+                let signIn = try await Clerk.shared.auth.signInWithPhoneCode(phoneNumber: "+1\(digits)")
+                clerkSignIn = signIn
+                showOTP = true
+            } catch {
+                errorMessage = error.localizedDescription
+                isLoading = false
+            }
+        }
     }
 }
