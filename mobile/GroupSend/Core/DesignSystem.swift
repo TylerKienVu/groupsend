@@ -20,6 +20,10 @@ enum DS {
     static let accent    = Color(hex: "#FF7B3F")
     static let accentInk = Color(hex: "#1A0E07") // dark ember brown for text on accent
 
+    // Semantic states — auth verification feedback
+    static let success = Color(hex: "#3CC36A") // V3 green
+    static let error   = Color(hex: "#FF4D6D") // V6 red
+
     // V-grade palette (V0–V10): Partiful-bright colors that map to climbing difficulty.
     // These identify climbing grades, NOT people. Never use them as avatar colors.
     static let vGrades: [Color] = [
