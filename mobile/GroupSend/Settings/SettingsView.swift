@@ -20,10 +20,10 @@ struct SettingsView: View {
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(DS.text)
                     Spacer()
-                    Color.clear.frame(width: 36)
+                    Color.clear.frame(width: 36, height: 36)
                 }
                 .padding(.horizontal, 18)
-                .padding(.top, 52)
+                .padding(.top, 12)
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
@@ -118,7 +118,7 @@ struct SettingsView: View {
                 }
             }
         }
-        .navigationBarHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
     }
 
     // ── Profile card ──────────────────────────────────────────────────────
