@@ -1,12 +1,17 @@
 import SwiftUI
 import ClerkKit
 
+enum ClerkAuthAttempt {
+    case signIn(SignIn)
+    case signUp(SignUp)
+}
+
 struct PhoneEntryView: View {
     @EnvironmentObject private var authManager: AuthManager
     @State private var phoneNumber = ""
     @State private var isLoading = false
     @State private var errorMessage: String?
-    @State private var clerkSignIn: SignIn?
+    @State private var authAttempt: ClerkAuthAttempt?
     @State private var showOTP = false
     @FocusState private var fieldFocused: Bool
 
@@ -124,8 +129,8 @@ struct PhoneEntryView: View {
             // SignIn is not Hashable so we can't use navigationDestination(item:).
             // Instead we pair a Bool trigger with the optional SignIn object.
             .navigationDestination(isPresented: $showOTP) {
-                if let signIn = clerkSignIn {
-                    OtpView(phoneNumber: phoneNumber, clerkSignIn: signIn)
+                if let attempt = authAttempt {
+                    OtpView(phoneNumber: phoneNumber, authAttempt: attempt)
                 }
             }
             .onAppear { fieldFocused = true }
@@ -138,17 +143,19 @@ struct PhoneEntryView: View {
         errorMessage = nil
         Task {
             do {
-                // If a previous OTP attempt left an orphaned Clerk session (verifyCode
-                // succeeded but our backend call failed), Clerk will reject a new sign-in
-                // with "already signed in". Clear it first.
                 if Clerk.shared.session != nil {
                     try? await Clerk.shared.auth.signOut()
                 }
-                // signInWithPhoneCode creates the sign-in AND sends the SMS in one call.
-                // The "+1" prefix hard-codes US country code — good enough for v1.
                 let digits = phoneNumber.filter(\.isNumber)
-                let signIn = try await Clerk.shared.auth.signInWithPhoneCode(phoneNumber: "+1\(digits)")
-                clerkSignIn = signIn
+                let formattedNumber = "+1\(digits)"
+                do {
+                    let signIn = try await Clerk.shared.auth.signInWithPhoneCode(phoneNumber: formattedNumber)
+                    authAttempt = .signIn(signIn)
+                } catch let clerkError as ClerkAPIError where ["form_identifier_not_found", "invitation_account_not_exists"].contains(clerkError.code) {
+                    let signUp = try await Clerk.shared.auth.signUp(phoneNumber: formattedNumber)
+                    let preparedSignUp = try await signUp.sendPhoneCode()
+                    authAttempt = .signUp(preparedSignUp)
+                }
                 showOTP = true
             } catch {
                 errorMessage = error.localizedDescription

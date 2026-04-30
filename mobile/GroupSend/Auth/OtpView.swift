@@ -14,7 +14,7 @@ private struct ShakeEffect: GeometryEffect {
 
 struct OtpView: View {
     let phoneNumber: String
-    let clerkSignIn: SignIn
+    let authAttempt: ClerkAuthAttempt
     @EnvironmentObject private var authManager: AuthManager
 
     @State private var digits: [String] = Array(repeating: "", count: 6)
@@ -159,7 +159,15 @@ struct OtpView: View {
 
         Task {
             do {
-                try await clerkSignIn.verifyCode(capturedCode)
+                switch authAttempt {
+                case .signIn(let signIn):
+                    try await signIn.verifyCode(capturedCode)
+                case .signUp(let signUp):
+                    let completedSignUp = try await signUp.verifyPhoneCode(capturedCode)
+                    if let sessionId = completedSignUp.createdSessionId {
+                        try await Clerk.shared.auth.setActive(sessionId: sessionId)
+                    }
+                }
                 guard let token = try await Clerk.shared.session?.getToken() else {
                     throw URLError(.userAuthenticationRequired)
                 }
